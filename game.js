@@ -346,18 +346,10 @@ class Game {
         this.nextMilestone = 250;
         this.milestoneShuffledDeck = [];  // shuffled order — refilled when empty
 
-        // Milestone canvas state
-        this.currentMilestoneImg    = null;
-        this.currentMilestoneQuote  = '';
-        this.currentMilestoneDist   = 0;
-        this.milestoneBlink         = 0; // blink timer for "tap to continue" text
-
-        // Preload all milestone images so they're instant when needed
-        this.milestoneImages = {};
+        // Preload all milestone images so the DOM <img> is instant when needed
         APPU_MILESTONES.forEach(entry => {
             const img = new Image();
             img.src = entry.img;
-            this.milestoneImages[entry.img] = img;
         });
 
         // Ground Floor Constants
@@ -768,10 +760,9 @@ class Game {
             document.getElementById('goFishEarned').innerText = this.fishEarnedThisRun;
             document.getElementById('goHighScore').innerText = this.highScore.toFixed(0);
         } else if (state === STATE_MILESTONE) {
-            // Milestone is drawn on canvas — just keep HUD visible
             this.gameHUD.classList.remove('hidden');
             this.mobileControls.classList.remove('hidden');
-            // (no DOM overlay — card is rendered directly onto the canvas)
+            this.milestoneScreen.classList.remove('hidden');
         }
     }
 
@@ -845,19 +836,19 @@ class Game {
         }
         const entry = APPU_MILESTONES[this.milestoneShuffledDeck.pop()];
 
-        // Store canvas draw state
-        this.currentMilestoneImg   = this.milestoneImages[entry.img];
-        this.currentMilestoneQuote = entry.quote;
-        this.currentMilestoneDist  = distance;
-        this.milestoneBlink        = 0;
+        // Populate the DOM overlay
+        document.getElementById('milestoneDistanceLabel').innerText = distance;
+        document.getElementById('milestoneQuote').innerText = entry.quote;
+        document.getElementById('milestoneImg').src = entry.img;
 
-        // Pause physics (showScreen stops music + hides other DOM screens)
+        // Pause physics (showScreen stops music + hides other overlays)
         this.showScreen(STATE_MILESTONE);
         sounds.playJump();
     }
 
     dismissMilestone() {
         this.state = STATE_PLAYING;
+        this.milestoneScreen.classList.add('hidden');
         sounds.startMusic();
     }
 
@@ -1793,105 +1784,6 @@ class Game {
         this.ctx.strokeRect(phb.x, phb.y, phb.w, phb.h);
         */
 
-        // ── Milestone overlay (drawn on canvas) ──────────────────────────────
-        if (this.state === STATE_MILESTONE) {
-            this._drawMilestoneCard();
-        }
-    }
-
-    _drawMilestoneCard() {
-        const cx = this.ctx;
-        const W = this.width, H = this.height;
-
-        // Dim the game behind the card
-        cx.fillStyle = 'rgba(0, 0, 0, 0.68)';
-        cx.fillRect(0, 0, W, H);
-
-        // Card dimensions & position (centred)
-        const cardW = 340, cardH = 290;
-        const cardX = Math.floor((W - cardW) / 2);
-        const cardY = Math.floor((H - cardH) / 2);
-
-        // Card shadow
-        cx.fillStyle = '#000';
-        cx.fillRect(cardX + 6, cardY + 6, cardW, cardH);
-
-        // Card background
-        cx.fillStyle = '#0d1b2a';
-        cx.fillRect(cardX, cardY, cardW, cardH);
-
-        // Card border (4px retro yellow)
-        cx.strokeStyle = '#f1c40f';
-        cx.lineWidth = 4;
-        cx.strokeRect(cardX + 2, cardY + 2, cardW - 4, cardH - 4);
-
-        // ── Distance badge ────────────────────────────────────────────────────
-        cx.font = '9px "Press Start 2P", monospace';
-        cx.fillStyle = '#f1c40f';
-        cx.textAlign = 'center';
-        cx.fillText(`🏃 ${this.currentMilestoneDist}m REACHED!`, W / 2, cardY + 22);
-
-        // ── Photo ─────────────────────────────────────────────────────────────
-        const imgSize = 130;
-        const imgX = Math.floor((W - imgSize) / 2);
-        const imgY = cardY + 32;
-
-        // White border behind photo
-        cx.fillStyle = '#fff';
-        cx.fillRect(imgX - 3, imgY - 3, imgSize + 6, imgSize + 6);
-        cx.fillStyle = '#000';
-        cx.fillRect(imgX - 5, imgY - 5, imgSize + 10, imgSize + 10);
-        cx.fillStyle = '#fff';
-        cx.fillRect(imgX - 3, imgY - 3, imgSize + 6, imgSize + 6);
-
-        if (this.currentMilestoneImg && this.currentMilestoneImg.complete) {
-            cx.drawImage(this.currentMilestoneImg, imgX, imgY, imgSize, imgSize);
-        } else {
-            // fallback placeholder while image loads
-            cx.fillStyle = '#1a1a2e';
-            cx.fillRect(imgX, imgY, imgSize, imgSize);
-            cx.font = '20px monospace';
-            cx.fillStyle = '#f1c40f';
-            cx.textAlign = 'center';
-            cx.fillText('🐱', W / 2, imgY + imgSize / 2 + 8);
-        }
-
-        // ── Quote (word-wrapped) ──────────────────────────────────────────────
-        cx.font = '6px "Press Start 2P", monospace';
-        cx.fillStyle = '#ecf0f1';
-        cx.textAlign = 'center';
-        const quoteY = imgY + imgSize + 16;
-        this._wrapText(cx, this.currentMilestoneQuote, W / 2, quoteY, cardW - 28, 13);
-
-        // ── "Tap / Space to continue" blink ───────────────────────────────────
-        this.milestoneBlink += 0.04;
-        const alpha = 0.5 + 0.5 * Math.sin(this.milestoneBlink * Math.PI * 2);
-        cx.globalAlpha = alpha;
-        cx.font = '6px "Press Start 2P", monospace';
-        cx.fillStyle = '#f1c40f';
-        cx.textAlign = 'center';
-        cx.fillText('TAP OR PRESS SPACE TO CONTINUE', W / 2, cardY + cardH - 10);
-        cx.globalAlpha = 1.0;
-
-        cx.textAlign = 'left'; // reset
-    }
-
-    _wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-        const words = text.split(' ');
-        let line = '';
-        let lineY = y;
-        for (let i = 0; i < words.length; i++) {
-            const testLine = line + words[i] + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && i > 0) {
-                ctx.fillText(line.trim(), x, lineY);
-                line = words[i] + ' ';
-                lineY += lineHeight;
-            } else {
-                line = testLine;
-            }
-        }
-        ctx.fillText(line.trim(), x, lineY);
     }
 
     // Standard high-accuracy game tick using deltaTime
