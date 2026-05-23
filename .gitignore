@@ -1,0 +1,21 @@
+# Environment variables - never commit these
+.env
+.env.local
+.env.production
+
+# Visit log contains hashed user data
+visits_anonymized.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Vercel
+.vercel
