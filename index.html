@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Appu's Meadow Run - Retro 8-bit Runner</title>
+    <!-- Google Font for Retro 8-bit styling -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=22">
+</head>
+<body>
+    <div class="crt-container">
+        <div class="crt-overlay"></div>
+        <div class="game-wrapper">
+            <!-- Canvas -->
+            <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+            <!-- DOM HUD (Overlay) -->
+            <div id="gameHUD" class="hud hidden">
+                <div class="hud-left">
+                    <div id="hudDistance" class="hud-item">DISTANCE: 0m</div>
+                </div>
+                <div class="hud-center">
+                    <div id="hudHearts" class="hud-item hearts">
+                        <span class="heart">❤️</span>
+                        <span class="heart">❤️</span>
+                        <span class="heart">❤️</span>
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div id="hudFish" class="hud-item">🐟 <span id="hudFishCount">0</span></div>
+                </div>
+            </div>
+
+            <!-- Mobile Controls Overlay -->
+            <div id="mobileControls" class="mobile-controls hidden">
+                <button id="btnMobileJump" class="btn-mobile-action btn-jump">JUMP</button>
+                <button id="btnMobileDuck" class="btn-mobile-action btn-duck">DUCK</button>
+            </div>
+
+            <!-- Start Menu Screen -->
+            <div id="startMenu" class="overlay">
+                <div class="menu-title-container">
+                    <h1 class="game-title">APPU'S MEADOW RUN</h1>
+                    <p class="subtitle">An 8-Bit Cat Adventure</p>
+                </div>
+                <div class="menu-controls">
+                    <button id="btnPlay" class="btn btn-green">PLAY GAME</button>
+                    <button id="btnShop" class="btn btn-yellow">SHOP</button>
+                </div>
+                <div class="highscore-display">
+                    BEST RUN: <span id="menuHighScore">0</span>m
+                </div>
+                <p class="orientation-tip">Rotate phone sideways for full-screen mode! 📱🔄</p>
+                <div class="instructions-panel">
+                    <h3>CONTROLS:</h3>
+                    <div class="control-desc desktop-controls">
+                        <p><span class="key">SPACE</span> / <span class="key">▲</span> / <span class="key">W</span> to Jump</p>
+                        <p><span class="key">▼</span> / <span class="key">S</span> to Duck (dodges bats/crows)</p>
+                    </div>
+                    <div class="control-desc mobile-controls-desc">
+                        <p><span class="key">BLUE JUMP</span> or Tap screen to Jump</p>
+                        <p><span class="key">RED DUCK</span> on right to Duck (dodges bats/crows)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shop Screen -->
+            <div id="shopScreen" class="overlay hidden">
+                <h2 class="menu-header">APPU'S SHOP</h2>
+                <div class="shop-currency">
+                    YOUR FISH: 🐟 <span id="shopFishCount">0</span>
+                </div>
+                <div class="shop-grid">
+                    <!-- Accessory Item: Walking Harness -->
+                    <div class="shop-item" id="itemHarness">
+                        <div class="item-preview" id="previewHarness">
+                            <!-- Matrix drawn via Canvas or static graphic in CSS -->
+                            <div class="preview-box harness-preview"></div>
+                        </div>
+                        <div class="item-name">HARNESS</div>
+                        <div class="item-desc">Cream colored walking harness!</div>
+                        <button class="btn btn-shop" data-item="harness" data-cost="20">🐟 20</button>
+                    </div>
+
+                    <!-- Accessory Item: Wizard Hat -->
+                    <div class="shop-item" id="itemWizardHat">
+                        <div class="item-preview" id="previewWizardHat">
+                            <div class="preview-box wizard-preview"></div>
+                        </div>
+                        <div class="item-name">WIZARD HAT</div>
+                        <div class="item-desc">Purple magic hat with stars!</div>
+                        <button class="btn btn-shop" data-item="wizardHat" data-cost="50">🐟 50</button>
+                    </div>
+
+                    <!-- Accessory Item: Sunglasses -->
+                    <div class="shop-item" id="itemSunglasses">
+                        <div class="item-preview" id="previewSunglasses">
+                            <div class="preview-box sunglasses-preview"></div>
+                        </div>
+                        <div class="item-name">COOL SHADES</div>
+                        <div class="item-desc">Appu is lookin' super cool!</div>
+                        <button class="btn btn-shop" data-item="sunglasses" data-cost="80">🐟 80</button>
+                    </div>
+                </div>
+                <div class="shop-actions">
+                    <button id="btnBackToMenu" class="btn btn-red">BACK TO MENU</button>
+                    <button id="btnResetData" class="btn btn-yellow" style="background-color: #e74c3c; color: #fff; box-shadow: 0 6px 0px #c0392b;">RESET DATA</button>
+                </div>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="gameOverScreen" class="overlay hidden">
+                <h2 class="game-over-title">GAME OVER</h2>
+                <p id="goMessage" class="go-message"></p>
+                <div class="game-over-stats">
+                    <p>DISTANCE RUN: <span id="goDistance">0</span>m</p>
+                    <p>FISH GATHERED: +<span id="goFishEarned">0</span></p>
+                    <p>BEST RECORD: <span id="goHighScore">0</span>m</p>
+                </div>
+                <div class="menu-controls">
+                    <button id="btnRestart" class="btn btn-green">RUN AGAIN</button>
+                    <button id="btnMenuFromGameOver" class="btn btn-yellow">MAIN MENU</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="sprites.js?v=22"></script>
+    <script src="game.js?v=22"></script>
+
+    <!-- Anonymized visit logging: fires once on page load, no personal data sent -->
+    <script>
+        (function () {
+            try {
+                fetch('/api/log_visit', { method: 'POST' });
+            } catch (e) {
+                // Silently ignore — visit logging is non-critical
+            }
+        })();
+    </script>
+</body>
+</html>

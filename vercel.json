@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/log_visit.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "*.{html,css,js}",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/log_visit",
+      "dest": "/api/log_visit.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
