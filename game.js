@@ -343,8 +343,8 @@ class Game {
         this.maxSpeed = 700;
         this.distanceRun = 0;
         this.fishEarnedThisRun = 0;
-        this.nextMilestone = 400;
-        this.lastMilestoneIndex = -1;
+        this.nextMilestone = 250;
+        this.milestoneShuffledDeck = [];  // shuffled order — refilled when empty
 
         // Milestone canvas state
         this.currentMilestoneImg    = null;
@@ -810,8 +810,8 @@ class Game {
         this.gameSpeed = 260;
         this.distanceRun = 0;
         this.fishEarnedThisRun = 0;
-        this.nextMilestone = 400;
-        this.lastMilestoneIndex = -1;
+        this.nextMilestone = 250;
+        this.milestoneShuffledDeck = [];  // shuffled order — refilled when empty
         this.obstacleTimer = 0.5; // Spawn first obstacle quick
         this.collectibleTimer = 1.5; // Spawn first coin soon
 
@@ -831,11 +831,19 @@ class Game {
 
     showMilestone(distance) {
         // Advance threshold immediately so we don't re-trigger
-        this.nextMilestone = distance + 400;
+        this.nextMilestone = distance + 250;
 
-        // Pick the next entry (cycle in order)
-        this.lastMilestoneIndex = (this.lastMilestoneIndex + 1) % APPU_MILESTONES.length;
-        const entry = APPU_MILESTONES[this.lastMilestoneIndex];
+        // Pick the next entry from a shuffled deck (refill + reshuffle when empty)
+        if (this.milestoneShuffledDeck.length === 0) {
+            // Fisher-Yates shuffle of indices
+            const indices = APPU_MILESTONES.map((_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            this.milestoneShuffledDeck = indices;
+        }
+        const entry = APPU_MILESTONES[this.milestoneShuffledDeck.pop()];
 
         // Store canvas draw state
         this.currentMilestoneImg   = this.milestoneImages[entry.img];
