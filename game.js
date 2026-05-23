@@ -190,7 +190,23 @@ class SoundEffects {
                     this.ctx.resume();
                 }
             });
+
+            // Mobile Chrome: register a one-shot unlock handler on the document.
+            // The AudioContext is created in a 'suspended' state on mobile and must
+            // be resumed inside a direct user-gesture callback.
+            const unlockAudio = () => {
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                document.removeEventListener('touchstart', unlockAudio, true);
+                document.removeEventListener('touchend',   unlockAudio, true);
+                document.removeEventListener('click',      unlockAudio, true);
+            };
+            document.addEventListener('touchstart', unlockAudio, true);
+            document.addEventListener('touchend',   unlockAudio, true);
+            document.addEventListener('click',      unlockAudio, true);
         }
+        // Always attempt to resume synchronously when called from a gesture handler
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
