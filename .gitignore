@@ -14,7 +14,7 @@ __pycache__/
 # macOS
 .DS_Store
 
-# Node
+# Node (if you ever add a build step)
 node_modules/
 
 # Vercel

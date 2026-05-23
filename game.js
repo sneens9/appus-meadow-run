@@ -172,6 +172,24 @@ class SoundEffects {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
             this.music = new MusicSynth(this.ctx);
+
+            // Play a silent 1-sample buffer — required to truly unlock audio on iOS.
+            // Must happen synchronously inside a user-gesture handler.
+            try {
+                const silentBuf = this.ctx.createBuffer(1, 1, 22050);
+                const silentSrc = this.ctx.createBufferSource();
+                silentSrc.buffer = silentBuf;
+                silentSrc.connect(this.ctx.destination);
+                silentSrc.start(0);
+            } catch (e) { /* ignore */ }
+
+            // Re-resume whenever the browser suspends the context
+            // (e.g. user switches apps on Android/iOS and comes back)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && this.ctx) {
+                    this.ctx.resume();
+                }
+            });
         }
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
@@ -180,9 +198,18 @@ class SoundEffects {
 
     startMusic() {
         this.init();
-        if (this.music) {
-            this.music.start();
-        }
+        if (!this.music) return;
+        // resume() is async on mobile — wait for it before scheduling notes
+        this.ctx.resume().then(() => {
+            if (this.music && !this.music.isPlaying) {
+                this.music.start();
+            }
+        }).catch(() => {
+            // Fallback: try starting directly if promise isn't supported
+            if (this.music && !this.music.isPlaying) {
+                this.music.start();
+            }
+        });
     }
 
     stopMusic() {
