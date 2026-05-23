@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=22">
+    <link rel="stylesheet" href="style.css?v=23">
 </head>
 <body>
     <div class="crt-container">
@@ -111,6 +111,18 @@
                 </div>
             </div>
 
+            <!-- Milestone Screen (shown every 1000m) -->
+            <div id="milestoneScreen" class="overlay hidden">
+                <div class="milestone-card">
+                    <div class="milestone-badge">🏃 <span id="milestoneDistanceLabel">1000</span>m REACHED!</div>
+                    <div class="milestone-photo-frame">
+                        <img id="milestoneImg" src="" alt="Appu says hi!">
+                    </div>
+                    <p id="milestoneQuote" class="milestone-quote"></p>
+                    <button id="btnMilestoneContinue" class="btn btn-green milestone-btn">KEEP RUNNING! →</button>
+                </div>
+            </div>
+
             <!-- Game Over Screen -->
             <div id="gameOverScreen" class="overlay hidden">
                 <h2 class="game-over-title">GAME OVER</h2>
@@ -129,8 +141,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="sprites.js?v=22"></script>
-    <script src="game.js?v=22"></script>
+    <script src="sprites.js?v=23"></script>
+    <script src="game.js?v=23"></script>
 
     <!-- Anonymized visit logging: fires once on page load, no personal data sent -->
     <script>

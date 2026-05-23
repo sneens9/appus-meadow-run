@@ -8,6 +8,59 @@ const STATE_MENU = 'MENU';
 const STATE_PLAYING = 'PLAYING';
 const STATE_SHOP = 'SHOP';
 const STATE_GAMEOVER = 'GAMEOVER';
+const STATE_MILESTONE = 'MILESTONE';
+
+// Appu milestone check-ins: shown every 1000m with a random pic + funny quote
+const APPU_MILESTONES = [
+    {
+        img: 'appu_pics/1CADE408-D9C1-4134-A126-78B00F1027AF.png',
+        quote: "Huh? You ran HOW far? I don't even walk to my food bowl."
+    },
+    {
+        img: 'appu_pics/D9DAF0A0-660C-4E0D-A7CF-E6580F54DFBB_converted.png',
+        quote: "Excuse me?! I was NAPPING in here. Keep running, please."
+    },
+    {
+        img: 'appu_pics/IMG_0943_converted.png',
+        quote: "It's raining. I'm napping. You're running. We are not the same."
+    },
+    {
+        img: 'appu_pics/IMG_0994.png',
+        quote: "You're running while I'm still in bed. One of us is doing life right."
+    },
+    {
+        img: 'appu_pics/IMG_1046.png',
+        quote: "I claimed this meadow. You're technically trespassing. Keep going though."
+    },
+    {
+        img: 'appu_pics/IMG_1072_converted.png',
+        quote: "I'm doing advanced yoga. It's called Reverse Nap. Very spiritual."
+    },
+    {
+        img: 'appu_pics/IMG_1103.png',
+        quote: "I trained all week for this. By 'trained' I mean I sat here."
+    },
+    {
+        img: 'appu_pics/IMG_1164.png',
+        quote: "I'm judging your running form. 6 out of 10. Paws need work."
+    },
+    {
+        img: 'appu_pics/IMG_1192.png',
+        quote: "That's right. I own this whole meadow. Every. Blade. Of. Grass."
+    },
+    {
+        img: 'appu_pics/IMG_1210.png',
+        quote: "I found a shortcut. It's full of tissue paper. 10/10 would recommend."
+    },
+    {
+        img: 'appu_pics/IMG_1370_converted.png',
+        quote: "I believe in you. Monitoring your progress from my blanket."
+    },
+    {
+        img: 'appu_pics/IMG_1558_converted.png',
+        quote: "APPULOCHEESE! That's how I say 'you got this!' in cat."
+    },
+];
 
 class MusicSynth {
     constructor(audioCtx) {
@@ -268,7 +321,8 @@ class Game {
         this.gameOverScreen = document.getElementById('gameOverScreen');
         this.gameHUD = document.getElementById('gameHUD');
         this.mobileControls = document.getElementById('mobileControls');
-        
+        this.milestoneScreen = document.getElementById('milestoneScreen');
+
         // HUD stats
         this.hudDistance = document.getElementById('hudDistance');
         this.hudHearts = document.getElementById('hudHearts');
@@ -289,6 +343,8 @@ class Game {
         this.maxSpeed = 700;
         this.distanceRun = 0;
         this.fishEarnedThisRun = 0;
+        this.nextMilestone = 1000;
+        this.lastMilestoneIndex = -1;
 
         // Ground Floor Constants
         this.groundHeight = 130;
@@ -646,6 +702,10 @@ class Game {
             sounds.playJump();
             this.showScreen(STATE_MENU);
         };
+
+        document.getElementById('btnMilestoneContinue').onclick = () => {
+            this.dismissMilestone();
+        };
     }
 
     showScreen(state) {
@@ -655,6 +715,7 @@ class Game {
         this.startMenu.classList.add('hidden');
         this.shopScreen.classList.add('hidden');
         this.gameOverScreen.classList.add('hidden');
+        this.milestoneScreen.classList.add('hidden');
         this.gameHUD.classList.add('hidden');
         this.mobileControls.classList.add('hidden');
 
@@ -679,6 +740,11 @@ class Game {
             document.getElementById('goDistance').innerText = this.distanceRun.toFixed(0);
             document.getElementById('goFishEarned').innerText = this.fishEarnedThisRun;
             document.getElementById('goHighScore').innerText = this.highScore.toFixed(0);
+        } else if (state === STATE_MILESTONE) {
+            // Keep HUD and mobile controls visible so players see their stats
+            this.gameHUD.classList.remove('hidden');
+            this.mobileControls.classList.remove('hidden');
+            this.milestoneScreen.classList.remove('hidden');
         }
     }
 
@@ -717,6 +783,8 @@ class Game {
         this.gameSpeed = 260;
         this.distanceRun = 0;
         this.fishEarnedThisRun = 0;
+        this.nextMilestone = 1000;
+        this.lastMilestoneIndex = -1;
         this.obstacleTimer = 0.5; // Spawn first obstacle quick
         this.collectibleTimer = 1.5; // Spawn first coin soon
 
@@ -732,6 +800,34 @@ class Game {
     openShop() {
         this.showScreen(STATE_SHOP);
         sounds.playJump();
+    }
+
+    showMilestone(distance) {
+        // Advance to next milestone threshold immediately so we don't re-trigger
+        this.nextMilestone = distance + 1000;
+
+        // Pick the next milestone entry (cycle through list in order, never repeat back-to-back)
+        this.lastMilestoneIndex = (this.lastMilestoneIndex + 1) % APPU_MILESTONES.length;
+        const entry = APPU_MILESTONES[this.lastMilestoneIndex];
+
+        // Populate the overlay
+        document.getElementById('milestoneDistanceLabel').innerText = distance;
+        document.getElementById('milestoneQuote').innerText = entry.quote;
+        const img = document.getElementById('milestoneImg');
+        img.src = entry.img;
+
+        // Pause the game by switching state (physics skip when state !== STATE_PLAYING)
+        this.showScreen(STATE_MILESTONE);
+        sounds.playJump();
+    }
+
+    dismissMilestone() {
+        // Resume game
+        this.state = STATE_PLAYING;
+        this.milestoneScreen.classList.add('hidden');
+        this.gameHUD.classList.remove('hidden');
+        this.mobileControls.classList.remove('hidden');
+        sounds.startMusic();
     }
 
     handleShopAction(skin, cost, buttonElement) {
@@ -1033,7 +1129,12 @@ class Game {
 
         // 2. Playable Game Physics Update
         this.distanceRun += this.gameSpeed * dt * 0.05; // 20m per unit
-        
+
+        // Milestone check: every 1000m show Appu photo
+        if (this.distanceRun >= this.nextMilestone) {
+            this.showMilestone(this.nextMilestone);
+        }
+
         // Speed scaling over time
         if (this.gameSpeed < this.maxSpeed) {
             this.gameSpeed += dt * 4.0; // gradual increase
