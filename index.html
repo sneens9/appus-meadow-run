@@ -161,15 +161,9 @@
     <script src="sprites.js?v=27"></script>
     <script src="game.js?v=27"></script>
 
-    <!-- Anonymized visit logging: fires once on page load, no personal data sent -->
-    <script>
-        (function () {
-            try {
-                fetch('/api/log_visit', { method: 'POST' });
-            } catch (e) {
-                // Silently ignore — visit logging is non-critical
-            }
-        })();
-    </script>
+    <!-- Vercel Analytics: tracks page views automatically. Works on plain HTML sites.
+         Vercel serves this script at /_vercel/insights/script.js once Analytics is
+         enabled in your project dashboard. No npm install needed for static sites. -->
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

@@ -173,7 +173,7 @@ class SoundEffects {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
             this.music = new MusicSynth(this.ctx);
 
-            // Play a silent 1-sample buffer — required to truly unlock audio on iOS.
+            // Play a silent 1-sample buffer — required to truly unlock audio on iOS/WebKit.
             // Must happen synchronously inside a user-gesture handler.
             try {
                 const silentBuf = this.ctx.createBuffer(1, 1, 22050);
@@ -190,23 +190,9 @@ class SoundEffects {
                     this.ctx.resume();
                 }
             });
-
-            // Mobile Chrome: register a one-shot unlock handler on the document.
-            // The AudioContext is created in a 'suspended' state on mobile and must
-            // be resumed inside a direct user-gesture callback.
-            const unlockAudio = () => {
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-                document.removeEventListener('touchstart', unlockAudio, true);
-                document.removeEventListener('touchend',   unlockAudio, true);
-                document.removeEventListener('click',      unlockAudio, true);
-            };
-            document.addEventListener('touchstart', unlockAudio, true);
-            document.addEventListener('touchend',   unlockAudio, true);
-            document.addEventListener('click',      unlockAudio, true);
         }
-        // Always attempt to resume synchronously when called from a gesture handler
+        // Always attempt to resume synchronously when called from a gesture handler.
+        // On iOS/WebKit this MUST be in the synchronous gesture call stack.
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
@@ -215,17 +201,29 @@ class SoundEffects {
     startMusic() {
         this.init();
         if (!this.music) return;
-        // resume() is async on mobile — wait for it before scheduling notes
-        this.ctx.resume().then(() => {
-            if (this.music && !this.music.isPlaying) {
-                this.music.start();
-            }
-        }).catch(() => {
-            // Fallback: try starting directly if promise isn't supported
-            if (this.music && !this.music.isPlaying) {
-                this.music.start();
-            }
-        });
+
+        // iOS/WebKit critical: music.start() MUST be called synchronously inside the
+        // user-gesture call stack. Putting it inside .then() moves it to a microtask
+        // which WebKit treats as outside the gesture — and silently blocks audio.
+        //
+        // Strategy: start the scheduler immediately (synchronously). If the context
+        // is still suspended, the notes are buffered and fire the moment resume() resolves.
+        // Then once the promise resolves, reset nextNoteTime so the beat stays in sync.
+        if (!this.music.isPlaying) {
+            this.music.start();
+        }
+
+        // Also kick off resume() — already called in init(), but calling again is safe.
+        const p = this.ctx.resume();
+        if (p && typeof p.then === 'function') {
+            p.then(() => {
+                // Re-anchor nextNoteTime to now so notes play in sync after any
+                // resume delay (context currentTime may have drifted while suspended).
+                if (this.music && this.music.isPlaying) {
+                    this.music.nextNoteTime = this.ctx.currentTime;
+                }
+            }).catch(() => {});
+        }
     }
 
     stopMusic() {
